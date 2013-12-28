@@ -12,19 +12,18 @@ fun template' (h: transaction unit) (mb:transaction xbody) : transaction page =
 
 fun template mb = template' (return {}) mb
 
-type cmes = {ExitCode:int, Stdout:string}
+fun callback c x =
+  let 
+    val e = Option.unsafeGet x.ExitCode
+    val so = x.Stdout
+  in
+    send c {ExitCode=e, Stdout=so}
+  end
 
 structure J = Job2.Make(
   struct
-    type t = channel cmes
-    val f =
-      fn c x =>
-        let 
-          val e = Option.unsafeGet x.ExitCode
-          val so = x.Stdout
-        in
-          send c {ExitCode=e, Stdout=so}
-        end
+    val fl = callback
+    val fr = callback
   end)
 
 
@@ -55,7 +54,7 @@ fun form {} : transaction xbody =
     and monitor jr : transaction page =
       s <- source <xml/>;
       c <- channel;
-      J.monitor jr c;
+      r <- J.monitor jr c;
       template'
         ( r <- recv c;
           set s <xml>{[r.Stdout]}</xml> )

@@ -4,7 +4,9 @@ con jobrec = [JobRef = int, ExitCode = option int, Cmd = string, Stdin = string,
 functor Make(S :
 sig
   type t
-  val f : t -> record jobrec -> transaction unit
+  type r
+  val fl : t -> record jobrec -> transaction r
+  val fr : t -> record jobrec -> transaction r
 
   val proof1 :  sql_injectable t
 end) :
@@ -15,6 +17,6 @@ sig
 
   val create : string -> string -> transaction jobref
 
-  val monitor : jobref -> S.t -> transaction unit
+  val monitor : jobref -> S.t -> transaction (option S.r)
 
 end

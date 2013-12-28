@@ -3,7 +3,9 @@ con jobrec = [JobRef = int, ExitCode = option int, Cmd = string, Stdin = string,
 functor Make(S :
 sig
   type t
-  val f : t -> record jobrec -> transaction unit
+  type r
+  val fl : t -> record jobrec -> transaction r
+  val fr : t -> record jobrec -> transaction r
 
   val proof1 :  sql_injectable t
 end) :
@@ -14,7 +16,7 @@ sig
 
   val create : string -> string -> transaction jobref
 
-  val monitor : jobref -> S.t -> transaction unit
+  val monitor : jobref -> S.t -> transaction (option S.r)
 
 end =
 
@@ -34,7 +36,7 @@ struct
     dml(UPDATE jobs SET ExitCode = {[Some ec]}, Stdout = {[so]} WHERE JobRef = {[jr]});
     ji <- oneRow (SELECT * FROM jobs WHERE jobs.JobRef = {[jr]});
     query1 (SELECT * FROM handles WHERE handles.JobRef = {[jr]}) (fn r s =>
-      S.f r.Payload ji.Jobs;
+      z <- S.fr r.Payload ji.Jobs;
       return s) {};
     dml (DELETE FROM handles WHERE JobRef = {[jr]});
     Callback.cleanup j;
@@ -47,12 +49,15 @@ struct
     Callback.run j (url (callback jr));
     return jr
 
-  fun monitor (jr:jobref) (c:S.t) : transaction unit =
+  fun monitor (jr:jobref) (c:S.t) : transaction (option S.r) =
     r <- oneRow (SELECT * FROM jobs WHERE jobs.JobRef = {[jr]});
     case r.Jobs.ExitCode of
-        None => dml (INSERT INTO handles(JobRef,Payload) VALUES ({[jr]}, {[c]}))
-      | Some (ec:int) => S.f c r.Jobs;
-    return {}
+        None =>
+          dml (INSERT INTO handles(JobRef,Payload) VALUES ({[jr]}, {[c]}));
+          return None
+      | Some (ec:int) =>
+          r <- S.fl c r.Jobs;
+          return (Some r)
     
 end
 
