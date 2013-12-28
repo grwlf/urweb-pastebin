@@ -1,0 +1,15 @@
+safeGet Pastebin/main
+safeGet Pastebin/monitor
+safeGet Job/callback
+safeGet Pastebin/J/callback
+allow mime text/javascript
+allow mime text/css
+database dbname=Pastebin.db
+sql ./Pastebin.sql
+library ./../urweb-callback
+debug
+
+$/option
+./Job
+./Job2
+./Pastebin
