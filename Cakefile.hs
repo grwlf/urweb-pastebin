@@ -12,6 +12,8 @@ project = do
     ur (sys "option")
     ur (pair "Job.ur")
     ur (pair "Job2.ur")
+    ur (pair "Cb.ur")
+    ur (pair "Job3.ur")
     ur (pair "Pastebin.ur")
     safeGet "Pastebin/main"
     safeGet "Pastebin/monitor"
@@ -22,6 +24,7 @@ project = do
     database "dbname=Pastebin.db"
     sql "Pastebin.sql"
     library' (externalMake "../urweb-callback/lib.urp")
+    library' (externalMake "../uru/lib.urp")
     debug
 
   db2 <- rule $do

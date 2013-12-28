@@ -7,9 +7,12 @@ allow mime text/css
 database dbname=Pastebin.db
 sql ./Pastebin.sql
 library ./../urweb-callback
+library ./../uru
 debug
 
 $/option
 ./Job
 ./Job2
+./Cb
+./Job3
 ./Pastebin

@@ -20,7 +20,7 @@ clean:
 ./Pastebin.exe: .fix-multy1
 ./Pastebin.urp: ./Pastebin.urp.in
 	cat ./Pastebin.urp.in > ./Pastebin.urp
-./Pastebin.urp.in: ./../urweb-callback/lib.urp ./Job.ur ./Job.urs ./Job2.ur ./Job2.urs ./Pastebin.ur ./Pastebin.urs
+./Pastebin.urp.in: ./../uru/lib.urp ./../urweb-callback/lib.urp ./Cb.ur ./Cb.urs ./Job.ur ./Job.urs ./Job2.ur ./Job2.urs ./Job3.ur ./Job3.urs ./Pastebin.ur ./Pastebin.urs
 	touch ./Pastebin.urp.in
 ./Pastebin.sql: .fix-multy1
 .INTERMEDIATE: .fix-multy1
@@ -52,6 +52,7 @@ clean: .fix-multy1
 .fix-multy1: 
 	-mkdir .cake3
 	$(MAKE) -C ./../urweb-callback -f Makefile
+	$(MAKE) -C ./../uru -f Makefile
 	$(MAKE) -f ./Makefile MAIN=1 $(MAKECMDGOALS)
 
 endif

@@ -1,31 +1,21 @@
 
 fun template' (h: transaction unit) (mb:transaction xbody) : transaction page =
-  b <- mb;
-  return
-    <xml>
-      <head/>
-      <body onload={h}>
-      <h1>PasteBin in UrWeb </h1>
-      {b}
-      </body>
-    </xml>
+    b <- mb;
+    return
+      <xml>
+        <head/>
+        <body onload={h}>
+          <h1>PasteBin in UrWeb </h1>
+          {b}
+        </body>
+      </xml>
 
 fun template mb = template' (return {}) mb
 
-fun callback c x =
-  let 
-    val e = Option.unsafeGet x.ExitCode
-    val so = x.Stdout
-  in
-    send c {ExitCode=e, Stdout=so}
-  end
-
-structure J = Job2.Make(
+structure J = Job3.Make(
   struct
-    val fl = callback
-    val fr = callback
+    val f = fn x => return (<xml>{[x.Stdout]}</xml> : xbody)
   end)
-
 
 fun form {} : transaction xbody = 
   let
@@ -52,18 +42,14 @@ fun form {} : transaction xbody =
         </xml>)
 
     and monitor jr : transaction page =
-      s <- source <xml/>;
-      c <- channel;
-      r <- J.monitor jr c;
-      template'
-        ( r <- recv c;
-          set s <xml>{[r.Stdout]}</xml> )
-        ( f <- form' "oldsource here";
+        a <- J.monitor jr <xml/>;
+        template (
+          f <- form' "oldsource here";
           return
             <xml>
               {f}
               <hr/>
-              <dyn signal={signal s}/>
+              {Cb.getXml a}
             </xml>)
 
     and handler s : transaction page = 
