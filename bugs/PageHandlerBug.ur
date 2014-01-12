@@ -1,24 +1,14 @@
 
-structure E = Error.Trans(struct con m = Pure.pure end)
-
-fun when [a ::: (Type -> Type)] (v:monad a) (b:bool) (m:a {}) = if b then m else return {}
-
 sequence pasteTId
 sequence pasteId
 table paste : { Id : int, TId : int, Text : string, JobRef : int }
 
-sequence commentId
 table comments : {Id : int, Text : string, TId : int}
 
 structure J = Job3.Make(
   struct
     val f = fn x => return (<xml>{[x.Stdout]}</xml> : xbody)
   end)
-
-fun validate s = Pure.run (E.run (
-  when (eq s.Text "") (E.fail "empty text");
-  when (eq s.UserName "") (E.fail "empty user");
-  return {}))
 
 fun recent (n:int) : transaction xbody =
   queryX (SELECT * FROM paste LIMIT {n}) (fn p =>
@@ -53,12 +43,17 @@ and pview (err:string) (pid:option int) =
   template (fn ftabs =>
     let
 
+      fun validate (f:string -> transaction page) (s:{Text:string}) : transaction page = 
+        case eq s.Text "" of
+          | True => redirect (url (pview "Invalid form value" pid))
+          | False => f s.Text
+
       fun form p : transaction xbody = 
         let
 
-          fun handler s : transaction page =
-            case validate s of
-              | Error.ERight {} =>
+          fun handler (s:{Text:string}) : transaction page =
+            case eq s.Text "" of
+              | False =>
                   tid <- (case p.TId > 0 of
                     | True => return p.TId
                     | False => nextval pasteTId);
@@ -66,8 +61,8 @@ and pview (err:string) (pid:option int) =
                   jr <- J.create "./compile.sh" s.Text;
                   dml(INSERT INTO paste(Id,TId,Text,JobRef) VALUES ({[pid]},{[tid]},{[s.Text]},{[jr]}));
                   redirect (url (gview pid))
-              | Error.ELeft (e:string) =>
-                  redirect (url (pview e pid))
+              | True =>
+                  redirect (url (pview "Invalid form value" pid))
 
         in
           return
@@ -78,8 +73,6 @@ and pview (err:string) (pid:option int) =
                 {[p.Text]}
                 </textarea>
                 <br/>
-                User name: <textbox{#UserName} value=""/>
-                <br/>
                 <submit action={handler} value="Compile"/>
               </form>
             </xml>
@@ -88,13 +81,17 @@ and pview (err:string) (pid:option int) =
       fun form_comment p : transaction xbody =
         let
           fun chandler (s:{Text:string}) : transaction page =
-            case eq s.Text "" of
-              | True =>
-                  redirect (url (pview "Invalid form value" pid))
-              | False =>
-                  cid <- nextval commentId;
-                  dml(INSERT INTO comments(Id,Text,TId) VALUES ({[cid]},{[s.Text]},{[p.TId]}));
-                  redirect (url (gview p.Id))
+            validate (fn s =>
+              dml(INSERT INTO comments(Id,Text,TId) VALUES ({[p.Id]},{[s]},{[p.TId]}));
+              redirect (url (gview p.Id))) s
+
+          (* fun chandler (s:{Text:string}) : transaction page = *)
+          (*   case eq s.Text "" of *)
+          (*     | True => *)
+          (*         redirect (url (pview "Invalid form value" pid)) *)
+          (*     | False => *)
+          (*         dml(INSERT INTO comments(Id,Text,TId) VALUES ({[p.Id]},{[s.Text]},{[p.TId]})); *)
+          (*         redirect (url (gview p.Id)) *)
         in
           return
             <xml>

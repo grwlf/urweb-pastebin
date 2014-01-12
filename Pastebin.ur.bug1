@@ -1,0 +1,82 @@
+
+fun template' (h: transaction unit) (mb:transaction xbody) : transaction page =
+    b <- mb;
+    return
+      <xml>
+        <head/>
+        <body onload={h}>
+          <h1>PasteBin in UrWeb </h1>
+          {b}
+        </body>
+      </xml>
+
+fun template mb = template' (return {}) mb
+
+sequence pasteId
+(* type paste = { Id : int, Text : string, JobRef : int } *)
+table paste : { Id : int, Text : string, JobRef : int }
+
+structure J = Job3.Make(
+  struct
+    val f = fn x => return (<xml>{[x.Stdout]}</xml> : xbody)
+  end)
+
+fun form (sd:string) (fview : int -> url) (ferr : string -> url) : transaction xbody = 
+  let
+
+    fun retry {} : transaction page = 
+      redirect (ferr "Invalid form value")
+
+    fun handler (s:{Text:string}) : transaction page = 
+      pid <- nextval pasteId;
+      jr <- J.create "./compile.sh" s.Text;
+      dml(INSERT INTO paste (Id,Text,JobRef) VALUES ({[pid]},{[s.Text]},{[jr]}));
+      redirect (fview pid)
+
+    fun validator (s:{Text:string}) : transaction page = 
+      case s.Text != "" of
+          True => handler s
+        | False => retry {}
+  in
+    return
+      <xml>
+        <form>
+          <textarea{#Text}>
+          {[sd]}
+          </textarea>
+          <br/>
+          <submit action={validator}/>
+        </form>
+      </xml>
+  end
+
+fun pview (err:string) (pid:int) =
+  r <- oneRow (SELECT * FROM paste WHERE paste.Id = {[pid]});
+  f <- form r.Paste.Text
+          (fn i => url (pview "" i))
+          (fn e => url (pview e r.Paste.JobRef));
+  j <- J.monitor r.Paste.JobRef <xml/>;
+  template (return
+    <xml>
+      {[err]}
+      <hr/>
+      {f}
+      <hr/>
+      {Cb.getXml j}
+    </xml>)
+
+fun pnew (err:string) : transaction page =
+  f <- form err
+        (fn i => url (pview "" i))
+        (fn e => url (pnew e));
+  template(
+    return
+      <xml>
+        {[err]}
+        <hr/>
+        {f}
+      </xml>)
+
+fun main {} : transaction page =
+  pnew ""
+

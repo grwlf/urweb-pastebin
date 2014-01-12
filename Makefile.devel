@@ -9,18 +9,19 @@ ifdef MAIN
 
 URVERSION = $(shell urweb -version)
 .PHONY: all
-all: ./Makefile.devel ./Pastebin.db ./Pastebin.exe ./Pastebin.sql
+all: ./Makefile.devel ./Pastebin.exe ./Pastebin.sql
 .PHONY: clean
 clean: ./Makefile.devel
 	rm -rf .cake3 ./Pastebin.sql ./Pastebin.exe
-./Pastebin.db: ./Makefile.devel ./Pastebin.exe ./Pastebin.sql
-	-rm ./Pastebin.db
-	touch ./Pastebin.db
-	sqlite3 ./Pastebin.db < ./Pastebin.sql
+.PHONY: db
+db: ./Makefile.devel ./Pastebin.exe ./Pastebin.sql
+	dropdb --if-exists Pastebin
+	createdb Pastebin
+	psql -f ./Pastebin.sql Pastebin
 ./Pastebin.exe: .fix-multy1
 ./Pastebin.urp: ./Makefile.devel ./Pastebin.urp.in
 	cat ./Pastebin.urp.in > ./Pastebin.urp
-./Pastebin.urp.in: ./../uru/lib.urp ./../urweb-callback/lib.urp ./Cb.ur ./Cb.urs ./Job.ur ./Job.urs ./Job2.ur ./Job2.urs ./Job3.ur ./Job3.urs ./Makefile.devel ./Pastebin.ur ./Pastebin.urs
+./Pastebin.urp.in: ./../uru/lib.urp ./../urweb-callback/lib.urp ./../urweb-monad-pack/lib.urp ./Cb.ur ./Cb.urs ./Job3.ur ./Job3.urs ./Makefile.devel ./Pastebin.ur ./Pastebin.urs
 	touch ./Pastebin.urp.in
 ./Cakegen: ./Cakefile.hs
 	cake3
@@ -29,7 +30,7 @@ clean: ./Makefile.devel
 ./Pastebin.sql: .fix-multy1
 .INTERMEDIATE: .fix-multy1
 .fix-multy1: ./Makefile.devel ./Pastebin.urp $(call GUARD,URVERSION)
-	urweb -dbms sqlite ./Pastebin
+	urweb -dbms postgres ./Pastebin
 $(call GUARD,URVERSION):
 	rm -f .cake3/GUARD_URVERSION_*
 	touch $@
@@ -42,8 +43,8 @@ else
 all: .fix-multy1
 .PHONY: clean
 clean: .fix-multy1
-.PHONY: ./Pastebin.db
-./Pastebin.db: .fix-multy1
+.PHONY: db
+db: .fix-multy1
 .PHONY: ./Pastebin.exe
 ./Pastebin.exe: .fix-multy1
 .PHONY: ./Pastebin.urp
@@ -60,6 +61,7 @@ clean: .fix-multy1
 .fix-multy1: 
 	-mkdir .cake3
 	$(MAKE) -C ./../urweb-callback -f Makefile
+	$(MAKE) -C ./../urweb-monad-pack -f Makefile
 	$(MAKE) -C ./../uru -f Makefile
 	$(MAKE) -f ./Makefile.devel MAIN=1 $(MAKECMDGOALS)
 

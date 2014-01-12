@@ -1,18 +1,21 @@
 safeGet Pastebin/main
 safeGet Pastebin/monitor
+safeGet Pastebin/pview
+safeGet Pastebin/gview
+safeGet Pastebin/gnew
+safeGet Pastebin/pnew
 safeGet Job/callback
 safeGet Pastebin/J/callback
 allow mime text/javascript
 allow mime text/css
-database dbname=Pastebin.db
+database dbname=Pastebin
 sql ./Pastebin.sql
 library ./../urweb-callback
+library ./../urweb-monad-pack
 library ./../uru
 debug
 
 $/option
-./Job
-./Job2
 ./Cb
 ./Job3
 ./Pastebin

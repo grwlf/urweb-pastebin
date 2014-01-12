@@ -25,6 +25,8 @@ struct
 
   table handles : {JobRef : int, Channel : channel S.t}
 
+  sequence jobrefs
+
   fun callback (jr:jobref) : transaction page =
     j <- Callback.deref jr;
     ec <- (return (Callback.exitcode j));
@@ -40,8 +42,8 @@ struct
     return <xml/>
 
   fun create (cmd:string) (inp:string) : transaction jobref =
-    j <- Callback.create cmd inp 1024;
-    jr <- (return (Callback.ref j));
+    jr <- nextval jobrefs;
+    j <- Callback.create cmd inp 1024 jr;
     dml(INSERT INTO jobs(JobRef,ExitCode,Cmd,Stdin,Stdout) VALUES ({[jr]}, {[None]}, {[cmd]}, {[inp]}, ""));
     Callback.run j (url (callback jr));
     return jr
@@ -57,6 +59,21 @@ struct
       | Some (ec:int) =>
           t <- S.f r.Jobs;
           return (Cb.Ready t)
+
+  fun monitor (jr:jobref) (d:S.t) =
+    r <- oneOrNoRows (SELECT * FROM jobs WHERE jobs.JobRef = {[jr]});
+    case r of
+        None => return (Cb.Ready d)
+      | Some r =>
+          case r.Jobs.ExitCode of
+              None =>
+                c <- channel;
+                s <- source d;
+                dml (INSERT INTO handles(JobRef,Channel) VALUES ({[jr]}, {[c]}));
+                return (Cb.Future (c,s))
+            | Some (ec:int) =>
+                t <- S.f r.Jobs;
+                return (Cb.Ready t)
     
 end
 
