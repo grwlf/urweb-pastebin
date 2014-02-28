@@ -13,23 +13,23 @@ project = do
   a <- uwapp "-dbms postgres" "Pastebin.urp" $ do
     ur (sys "option")
     ur (pair "Cb.ur")
-    ur (pair "Job3.ur")
+    -- ur (pair "Job3.ur")
     ur (pair "Pastebin.ur")
-    safeGet "Pastebin/main"
-    safeGet "Pastebin/monitor"
-    safeGet "Pastebin/pview"
-    safeGet "Pastebin/gview"
-    safeGet "Pastebin/gnew"
-    safeGet "Pastebin/pnew"
-    safeGet "Job/callback"
-    safeGet "Pastebin/J/callback"
+    safeGet "Pastebin.ur" "main"
+    safeGet "Pastebin.ur" "monitor"
+    safeGet "Pastebin.ur" "pview"
+    safeGet "Pastebin.ur" "gview"
+    safeGet "Pastebin.ur" "gnew"
+    safeGet "Pastebin.ur" "pnew"
+    safeGet "Job.ur" "callback"
+    safeGet "Pastebin.ur" "J/callback"
     allow mime "text/javascript"
     allow mime "text/css"
     database ("dbname="++dbn)
     sql "Pastebin.sql"
     library' (externalMake "../urweb-callback/lib.urp")
     library' (externalMake "../urweb-monad-pack/lib.urp")
-    library' (externalMake "../uru/lib.urp")
+    library' (externalMake "../uru2/lib.urp")
     debug
 
   db2 <- rule $ do

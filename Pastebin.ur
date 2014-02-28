@@ -10,7 +10,7 @@ table paste : { Id : int, TId : int, Text : string, JobRef : int }
 sequence commentId
 table comments : {Id : int, Text : string, TId : int}
 
-structure J = Job3.Make(
+structure J = Callback.Make(
   struct
     val f = fn x => return (<xml>{[x.Stdout]}</xml> : xbody)
   end)
@@ -25,11 +25,11 @@ fun recent (n:int) : transaction xbody =
     <xml><a link={gview p.Paste.Id}>#{[p.Paste.Id]}</a></xml>)
 
 and template fb : transaction page =
-  Page.run (
+  Uru.run (
   JQuery.add (
   Bootstrap.add (
   RespTabs.add (fn ftabs =>
-  Page.withBody (
+  Uru.withBody ( fn _ =>
     b <- fb ftabs;
     r <- recent 50;
     return
@@ -116,7 +116,7 @@ and pview (err:string) (pid:option int) =
             t <- ftabs (
               (RespTabs.mktab "Text" "Text" f) ::
               (RespTabs.mktab "Text" "View" <xml>{[r.Paste.Text]}</xml>) ::
-              (RespTabs.mktab "Text" "Log" (Cb.getXml j)) ::
+              (RespTabs.mktab "Text" "Log" (Callback.getXml j)) ::
               []);
             c <- queryX (SELECT * FROM comments WHERE comments.TId = {[r.Paste.TId]}) (fn r =>
               <xml>

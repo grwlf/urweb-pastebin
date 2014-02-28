@@ -3,7 +3,8 @@
 
 GUARD = .cake3/GUARD_$(1)_$(shell echo $($(1)) | md5sum | cut -d ' ' -f 1)
 
-ifdef MAIN
+ifeq ($(MAIN),1)
+unexport MAIN
 
 # Main section
 
@@ -21,7 +22,7 @@ db: ./Pastebin.exe ./Pastebin.sql
 ./Pastebin.exe: .fix-multy1
 ./Pastebin.urp: ./Pastebin.urp.in
 	cat ./Pastebin.urp.in > ./Pastebin.urp
-./Pastebin.urp.in: ./../uru/lib.urp ./../urweb-callback/lib.urp ./../urweb-monad-pack/lib.urp ./Cb.ur ./Cb.urs ./Job3.ur ./Job3.urs ./Pastebin.ur ./Pastebin.urs
+./Pastebin.urp.in: ./../uru2/lib.urp ./../urweb-callback/lib.urp ./../urweb-monad-pack/lib.urp ./Cb.ur ./Cb.urs ./Pastebin.ur ./Pastebin.urs
 	touch ./Pastebin.urp.in
 ./Pastebin.sql: .fix-multy1
 .INTERMEDIATE: .fix-multy1
@@ -34,6 +35,8 @@ $(call GUARD,URVERSION):
 else
 
 # Prebuild/postbuild section
+
+export MAIN=1
 
 .PHONY: all
 all: .fix-multy1
@@ -54,7 +57,7 @@ db: .fix-multy1
 	-mkdir .cake3
 	$(MAKE) -C ./../urweb-callback -f Makefile
 	$(MAKE) -C ./../urweb-monad-pack -f Makefile
-	$(MAKE) -C ./../uru -f Makefile
-	$(MAKE) -f ./Makefile MAIN=1 $(MAKECMDGOALS)
+	$(MAKE) -C ./../uru2 -f Makefile
+	$(MAKE) -f ./Makefile $(MAKECMDGOALS)
 
 endif

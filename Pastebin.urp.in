@@ -12,10 +12,9 @@ database dbname=Pastebin
 sql ./Pastebin.sql
 library ./../urweb-callback
 library ./../urweb-monad-pack
-library ./../uru
+library ./../uru2
 debug
 
 $/option
 ./Cb
-./Job3
 ./Pastebin
