@@ -1,4 +1,6 @@
 
+open Bootstrap
+
 structure E = Error.Trans(struct con m = Pure.pure end)
 
 fun when [a ::: (Type -> Type)] (v:monad a) (b:bool) (m:a {}) = if b then m else return {}
@@ -10,9 +12,10 @@ table paste : { Id : int, TId : int, Text : string, JobRef : int }
 sequence commentId
 table comments : {Id : int, Text : string, TId : int}
 
-structure J = Callback.Make(
+structure J = CallbackNotify2.Make(
   struct
-    val f = fn x => return (<xml>{[x.Stdout]}</xml> : xbody)
+    val cmd = "./compile.sh"
+    val render = fn x => return (<xml>{[Callback.blobLines x.Stdout]}</xml> : xbody)
   end)
 
 fun validate s = Pure.run (E.run (
@@ -34,15 +37,15 @@ and template fb : transaction page =
     r <- recent 50;
     return
       <xml>
-        <div class={Bootstrap.container}>
-          <div class={Bootstrap.row_fluid}>
+        <div class="container">
+          <div class="row">
           <h1>PasteBin in UrWeb</h1>
           </div>
-          <div class={Bootstrap.row_fluid}>
+          <div class="row">
             {r}
             <hr/>
           </div>
-          <div class={Bootstrap.row_fluid}>
+          <div class="row">
             {b}
           </div>
         </div>
@@ -63,7 +66,8 @@ and pview (err:string) (pid:option int) =
                     | True => return p.TId
                     | False => nextval pasteTId);
                   pid <- nextval pasteId;
-                  jr <- J.create "./compile.sh" s.Text;
+                  jr <- J.createDefault (Some (textBlob s.Text));
+                  dml(DELETE FROM  paste WHERE Id < {[pid - 100]});
                   dml(INSERT INTO paste(Id,TId,Text,JobRef) VALUES ({[pid]},{[tid]},{[s.Text]},{[jr]}));
                   redirect (url (gview pid))
               | Error.ELeft (e:string) =>
@@ -93,6 +97,7 @@ and pview (err:string) (pid:option int) =
                   redirect (url (pview "Invalid form value" pid))
               | False =>
                   cid <- nextval commentId;
+                  dml(DELETE FROM comments WHERE Id < {[cid-100]});
                   dml(INSERT INTO comments(Id,Text,TId) VALUES ({[cid]},{[s.Text]},{[p.TId]}));
                   redirect (url (gview p.Id))
         in
@@ -111,12 +116,12 @@ and pview (err:string) (pid:option int) =
       case pid of
         | Some pid =>
             r <- oneRow (SELECT * FROM paste WHERE paste.Id = {[pid]});
-            j <- J.monitor r.Paste.JobRef <xml/>;
+            j <- J.monitor r.Paste.JobRef;
             f <- form r.Paste;
             t <- ftabs (
               (RespTabs.mktab "Text" "Text" f) ::
               (RespTabs.mktab "Text" "View" <xml>{[r.Paste.Text]}</xml>) ::
-              (RespTabs.mktab "Text" "Log" (Callback.getXml j)) ::
+              (RespTabs.mktab "Text" "Log" j) ::
               []);
             c <- queryX (SELECT * FROM comments WHERE comments.TId = {[r.Paste.TId]}) (fn r =>
               <xml>
